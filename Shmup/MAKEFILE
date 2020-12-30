@@ -1,0 +1,18 @@
+CFLAGS	= -O1 -g
+LINKER	= -Xlinker -Ttext -Xlinker 80100000
+RM	= del
+
+PROG	= main
+OBJS	= main.o Stars.o TMD.o VRAM.o
+
+all: $(PROG)
+
+$(PROG): $(OBJS)
+	$(CC) $(LINKER) $(OBJS) -o $(PROG)
+
+main.o: main.c
+
+clean:
+	$(RM) $(PROG) 
+	$(RM) $(OBJS)
+
