@@ -1,6 +1,12 @@
 #ifndef _MATHS_H
 #define _MATHS_H
 
+#include <libps.h>
+
+static MATRIX MtxIdentity;
+
+void MatrixInit(MATRIX* mtx);
+
 static u_long min(u_long value1, u_long value2)
 {
     return value1 < value2 ? value1 : value2;

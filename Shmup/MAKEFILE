@@ -3,7 +3,7 @@ LINKER	= -Xlinker -Ttext -Xlinker 80100000
 RM	= del
 
 PROG	= main
-OBJS	= main.o Stars.o TMD.o VRAM.o
+OBJS	= main.o Gamepad.o Object.o Maths.o Stars.o TIM.o TMD.o VRAM.o
 
 all: $(PROG)
 
@@ -14,5 +14,5 @@ main.o: main.c
 
 clean:
 	$(RM) $(PROG) 
-	$(RM) $(OBJS)
+	$(RM) *.o
 

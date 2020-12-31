@@ -3,12 +3,15 @@
 
 #define SCREEN_WIDTH         320
 #define SCREEN_HEIGHT        240
-#define PROJECTION_DIST      1024
-#define ORDER_TABLE_LENGTH	 9
+#define PROJECTION_DIST      1000
+#define ORDER_TABLE_LENGTH	 14      //1<<X tags, max 14 (16384 tags)
 #define NUM_DRAW_BUFFERS     2
-#define GPU_PACKET_SIZE      24
-#define MAX_GPU_PACKETS	     2048
+#define MAX_GPU_PACKETS	     1024
 #define TPAGE_WIDTH          64
 #define TPAGE_HEIGHT         256
+
+#define CAMERA_INITIAL_X     0
+#define CAMERA_INITIAL_Y     0
+#define CAMERA_INITIAL_Z     600
 
 #endif // _CONSTS_H

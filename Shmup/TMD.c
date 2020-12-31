@@ -51,9 +51,9 @@ void TMDDebugPrint(u_long* tmdData)
        {
            //Table addrs are offsets
            printf(" Using table offsets\n");
-	       tmdVertTbl = (char*)(tmdObjBase + (u_long)tmdObj->vertexTable);
-	       tmdNormTbl = (char*)(tmdObjBase + (u_long)tmdObj->normalTable);
-	       tmdPrimTbl = (char*)(tmdObjBase + (u_long)tmdObj->primitiveTable);
+	       tmdVertTbl = (char*)(((char*)tmdObjBase) + (u_long)tmdObj->vertexTable);
+	       tmdNormTbl = (char*)(((char*)tmdObjBase) + (u_long)tmdObj->normalTable);
+	       tmdPrimTbl = (char*)(((char*)tmdObjBase) + (u_long)tmdObj->primitiveTable);
        }
        
        printf(" Vertices:   %d\n", tmdObj->vertexCount);
@@ -78,6 +78,51 @@ void TMDDebugPrint(u_long* tmdData)
             {
                 tmdPrimTbl += (*tmdPrimReader)(tmdPrim, (TMDVertex*)tmdVertTbl, (TMDVertex*)tmdNormTbl);
             }
+       }
+    }
+}
+
+void TMDDebugPrintVerts(u_long* tmdData, int maxVerts)
+{
+    int i;
+    int j;
+    int vertCount = 0;
+    TMDHeader* tmdHdr;
+    TMDObject* tmdObj;
+	u_long tmdObjBase;
+	char* tmdVertTbl;
+    	
+    //Read TMD header
+	tmdHdr = (TMDHeader*)tmdData;
+	tmdData += sizeof(TMDHeader);
+	
+	//Read all objects
+	for(i = 0; i < tmdHdr->numObjects && vertCount < maxVerts; i++)
+	{
+       printf("Object %d:\n", i);
+       
+       tmdObjBase = (u_long)tmdData;
+       
+       //Read object header
+       tmdObj = (TMDObject*)tmdData;
+       tmdData += sizeof(TMDObject);
+       
+       //Get vert/norm/index tables
+       if(tmdHdr->flags & TMDFLAG_FIXP)
+       {
+	       tmdVertTbl = (char*)tmdObj->vertexTable;
+       }
+       else
+       {
+	       tmdVertTbl = (char*)(((char*)tmdObjBase) + (u_long)tmdObj->vertexTable);
+       }
+       
+       printf(" Vertices:   %d\n", tmdObj->vertexCount);
+       
+       for(j = 0; j < tmdObj->vertexCount && vertCount < maxVerts; j++, vertCount++)
+       {
+            TMDVertex* vert = &((TMDVertex*)tmdVertTbl)[j];
+            printf("  %d,%d,%d\n", vert->x, vert->y, vert->z);
        }
     }
 }

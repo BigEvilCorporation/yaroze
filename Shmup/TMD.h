@@ -71,6 +71,7 @@ typedef struct _TMDPrim_04_03_00_20
 
 void TMDLoad(u_long* tmdData);
 void TMDDebugPrint(u_long* tmdData);
+void TMDDebugPrintVerts(u_long* tmdData, int maxVerts);
 TMDPrimReader TMDGetPrimReader(TMDPrimitive* prim);
 u_long TMDPrimReader_04_03_00_20(TMDPrimitive* prim, TMDVertex* verts, TMDVertex* norms);
 

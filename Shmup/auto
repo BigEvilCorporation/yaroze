@@ -1,2 +1,4 @@
+local dload assets\overtone.tmd 80130000
+local dload assets\overtone.tim 80140000
 local load main
 go
