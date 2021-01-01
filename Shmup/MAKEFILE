@@ -1,9 +1,9 @@
-CFLAGS	= -O1 -g
+CFLAGS	= -O1 -g -DPLATFORM_YAROZE
 LINKER	= -Xlinker -Ttext -Xlinker 80100000
 RM	= del
 
 PROG	= main
-OBJS	= main.o Gamepad.o Object.o Maths.o Stars.o TIM.o TMD.o VRAM.o
+OBJS	= main.o CDROM.c CDROM.s Interpt.c File.o Gamepad.o Object.o Maths.o Stars.o TIM.o TMD.o VRAM.o
 
 all: $(PROG)
 

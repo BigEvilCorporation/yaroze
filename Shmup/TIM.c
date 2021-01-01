@@ -19,7 +19,7 @@ void TIMLoad(u_long* timData)
     LoadImage(&rect, image.pixel);
     
     //Load palette
-    if(image.clut)
+    if(image.pmode == TIM_PMODE_4 || image.pmode == TIM_PMODE_8 || image.pmode == TIM_PMODE_MIX)
     {
         rect.x = image.cx;
         rect.y = image.cy;
