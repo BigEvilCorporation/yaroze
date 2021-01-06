@@ -1,0 +1,14 @@
+MMath
+Zachary Wells
+MIT License
+https://github.com/8bitslime/MMath
+
+Viscosity Physics
+MIT License
+Zachary Wells
+https://github.com/8bitslime/Viscosity
+
+Overtone ship models
+CC BY-SA 4.0 License
+@KyraTech_13
+https://opengameart.org/content/overtone
