@@ -1,9 +1,24 @@
-CFLAGS	= -O1 -g -DPLATFORM_YAROZE
+CFLAGS	= -O3 -DPLATFORM_YAROZE
 LINKER	= -Xlinker -Ttext -Xlinker 80100000
 RM	= del
 
 PROG	= main
-OBJS	= \
+HEADERS = \
+    Assets.h \
+    Consts.h \
+    CDPrompt.h \
+    framewk\\entity\\Object.h \
+    framewk\\io\\CDROM.h \
+    framewk\\io\\File.h \
+    framewk\\io\\Gamepad.h \
+    framewk\\maths\\Maths.h \
+    framewk\\maths\\MMath.h \
+    framewk\\render\\TIM.h \
+    framewk\\render\\TMD.h \
+    framewk\\render\\VRAM.h \
+    framewk\\system\\Interpt.h
+    
+SOURCE	= \
     CDPrompt.c \
     main.c \
     Stars.c \
@@ -20,10 +35,8 @@ OBJS	= \
 
 all: $(PROG)
 
-$(PROG): $(OBJS)
-	$(CC) $(LINKER) $(OBJS) -o $(PROG)
-
-main.o: main.c
+$(PROG): $(SOURCE) $(HEADERS)
+	$(CC) $(CFLAGS) $(LINKER) $(SOURCE) -o $(PROG)
 
 clean:
 	$(RM) $(PROG) 

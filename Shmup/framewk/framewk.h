@@ -4,6 +4,7 @@
 #include "geometry\Cube.h"
 #include "io\File.h"
 #include "io\Gamepad.h"
+#include "maths\MMath.h"
 #include "maths\Maths.h"
 #include "render\TIM.h"
 #include "render\TMD.h"
