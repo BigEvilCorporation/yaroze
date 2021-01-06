@@ -4,19 +4,19 @@ RM	= del
 
 PROG	= main
 OBJS	= \
-    main.c \
-    CDROM.c \
-    CDROM.s \
     CDPrompt.c \
-    Interpt.c \
-    File.c \
-    Gamepad.c \
-    Object.c \
-    Maths.c \
+    main.c \
     Stars.c \
-    TIM.c \
-    TMD.c \
-    VRAM.c
+    framewk\\entity\\Object.c \
+    framewk\\io\\CDROM.c \
+    framewk\\io\\CDROM.s \
+    framewk\\io\\File.c \
+    framewk\\io\\Gamepad.c \
+    framewk\\maths\\Maths.c \
+    framewk\\render\\TIM.c \
+    framewk\\render\\TMD.c \
+    framewk\\render\\VRAM.c \
+    framewk\\system\\Interpt.c
 
 all: $(PROG)
 

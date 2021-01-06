@@ -1,7 +1,7 @@
 #ifndef _CUBE_H
 #define _CUBE_H
 
-#include "TMD.h"
+#include "..\render\TMD.h"
 
 static TMDVertex geomCubeVerts[8] =
 {

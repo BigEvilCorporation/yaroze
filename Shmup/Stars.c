@@ -1,9 +1,6 @@
-#include <libps.h>
-
+#include "framewk\framewk.h"
 #include "Stars.h"
-#include "Maths.h"
 #include "Consts.h"
-#include "VRAM.h"
 
 typedef struct _starDef
 {

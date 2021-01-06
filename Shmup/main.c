@@ -1,14 +1,8 @@
-#include <libps.h>
+#include "framewk\framewk.h"
+
 #include "Assets.h"
 #include "Consts.h"
-#include "Cube.h"
-#include "File.h"
-#include "Gamepad.h"
-#include "Maths.h"
-#include "Object.h"
 #include "Stars.h"
-#include "TIM.h"
-#include "TMD.h"
 
 //GPU
 GsOT DrawTables[NUM_DRAW_BUFFERS];
