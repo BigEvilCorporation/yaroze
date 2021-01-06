@@ -9,6 +9,16 @@
 #define TIM_PMODE_24  3
 #define TIM_PMODE_MIX 4
 
-void TIMLoad(u_long* timData);
+typedef struct _Texture
+{
+    RECT imgVram;
+    RECT palVram;
+    u_short imgPage;
+    u_short palPage;
+    u_short mode;
+    u_short flags;
+} Texture;
+
+Texture TIMLoad(u_long* timData);
 
 #endif // _TIM_H

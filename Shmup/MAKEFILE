@@ -3,7 +3,20 @@ LINKER	= -Xlinker -Ttext -Xlinker 80100000
 RM	= del
 
 PROG	= main
-OBJS	= main.o CDROM.c CDROM.s Interpt.c File.o Gamepad.o Object.o Maths.o Stars.o TIM.o TMD.o VRAM.o
+OBJS	= \
+    main.c \
+    CDROM.c \
+    CDROM.s \
+    CDPrompt.c \
+    Interpt.c \
+    File.c \
+    Gamepad.c \
+    Object.c \
+    Maths.c \
+    Stars.c \
+    TIM.c \
+    TMD.c \
+    VRAM.c
 
 all: $(PROG)
 

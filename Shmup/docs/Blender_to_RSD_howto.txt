@@ -1,0 +1,22 @@
+Blender:
+- Select object
+- Edit mode
+- Textured view
+- U
+- Unwrap
+- UV/Image Editor
+- Open texture
+- Object mode
+- Export RSD
+
+TIM Utility:
+- Open BMP
+- Choose settings
+- Convert, save as ..\TIM\IMAGE.TIM
+- Open RSD
+- Window -> TIM Layout, move to correct tpage
+- Convert, save as ..\TIM\IMAGE.TIM
+
+RSDLink.exe:
+- rsdlink -v -o ..\TMD\MODEL.TMD MODEL.RSD
+

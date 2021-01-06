@@ -1,0 +1,5 @@
+@RSD940102
+PLY=Overtone.ply
+MAT=Overtone.mat
+NTEX=1
+TEX[0]=overtone.tim

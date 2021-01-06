@@ -1,8 +1,8 @@
 #include "TIM.h"
 
-void TIMLoad(u_long* timData)
+Texture TIMLoad(u_long* timData)
 {
-    RECT rect;
+    Texture texture;
     GsIMAGE image;
     
     //Skip header
@@ -10,21 +10,31 @@ void TIMLoad(u_long* timData)
 
     //Get image info    
     GsGetTimInfo(timData, &image);
+    texture.mode = image.pmode & 0x3;
+    texture.flags = image.pmode >> 0x2;
 
     //Load image data
-    rect.x = image.px;
-    rect.y = image.py;
-    rect.w = image.pw;
-    rect.h = image.ph;
-    LoadImage(&rect, image.pixel);
-    
+    texture.imgVram.x = image.px;
+    texture.imgVram.y = image.py;
+    texture.imgVram.w = image.pw;
+    texture.imgVram.h = image.ph;
+    LoadImage(&texture.imgVram, image.pixel);
+
+    //Get image tpage
+    texture.imgPage = GetTPage(texture.mode, 0, texture.imgVram.x, texture.imgVram.y);
+        
     //Load palette
-    if(image.pmode == TIM_PMODE_4 || image.pmode == TIM_PMODE_8 || image.pmode == TIM_PMODE_MIX)
+    if(texture.mode == TIM_PMODE_4 || texture.mode == TIM_PMODE_8 || texture.mode == TIM_PMODE_MIX)
     {
-        rect.x = image.cx;
-        rect.y = image.cy;
-        rect.w = image.cw;
-        rect.h = image.ch;
-        LoadImage(&rect, image.clut);
+        texture.palVram.x = image.cx;
+        texture.palVram.y = image.cy;
+        texture.palVram.w = image.cw;
+        texture.palVram.h = image.ch;
+        LoadImage(&texture.palVram, image.clut);
+        
+        //Get palette tpage
+        texture.palPage = GetTPage(TIM_PMODE_16, 0, texture.palVram.x, texture.palVram.y);
     }
+    
+    return texture;
 }
