@@ -2,51 +2,7 @@
 #include <stdio.h>
 #include "world.h"
 
-typedef enum jointType {
-	JOINT_DELETE = 0,
-	JOINT_CONTACT
-} jointType;
-typedef struct joint {
-	jointType type;
-	bodyID a, b;
-} joint;
-typedef struct contact_joint {
-	joint j;
-	contact contact;
-} contact_joint, joint_max;
-
 //World
-typedef struct accumulator {
-	vec3 vel, avel;
-} accumulator;
-typedef struct world {
-	vec3 gravity;
-	
-	size_t body_size;
-	size_t body_cap;
-
-	size_t* body_empty;
-	size_t body_empty_size;
-
-	bodyType *body_type;
-	vec3 *body_pos;  //3
-	vec3 *body_vel;  //3
-	quat *body_rot;  //4
-	vec3 *body_avel; //3
-	accumulator *body_accum; // 6
-	aabb *body_aabb; //6
-	shape **body_shape; //array of pointers, shapes are stored separately from worlds
-
-	size_t joint_size;
-	size_t joint_cap;
-
-	size_t *joint_empty;
-	size_t joint_empty_size;
-
-	joint_max* joints;
-
-} world;
-
 static world* allocateWorld(size_t body_cap, size_t joint_cap) {
 	const size_t size = sizeof(world) +						//world
 						sizeof(scalar) * 25 * body_cap +	//body data
@@ -55,7 +11,7 @@ static world* allocateWorld(size_t body_cap, size_t joint_cap) {
 	unsigned char* data = calloc(1, size);
 
 	world* ret = (world*)data;
-	ret->gravity.y = -9.8f;
+	ret->gravity.v.y = -9.8f;
 	ret->body_cap  = body_cap;
 	ret->joint_cap = joint_cap;
 
@@ -101,6 +57,7 @@ void worldDestroy(world *w) {
 //Bodies
 bodyID bodyCreate(world** ptr) {
 	world *w = *ptr;
+	size_t index;
 
 	if (w->body_size >= w->body_cap) {
 		//Allocate more space
@@ -111,7 +68,6 @@ bodyID bodyCreate(world** ptr) {
 		w = newWorld;
 	}
 
-	size_t index;
 	if (w->body_empty_size == 0) {
 		index = w->body_size;
 	} else {
@@ -170,7 +126,7 @@ void bodyGetMat4(mat4 *dest, world *w, bodyID b) {
 		1, 0, 0, 0,
 		0, 1, 0, 0,
 		0, 0, 1, 0,
-		pos.x, pos.y, pos.z, 1
+		pos.v.x, pos.v.y, pos.v.z, 1
 	};
 	mat4 rot;
 	quatToMat4(&rot, &w->body_rot[b]);
@@ -187,7 +143,7 @@ void bodySetShape(world *w, bodyID b, shape *s) {
 	}
 }
 
-static inline void applyForce(world *w, bodyID b, const vec3 *pos, const vec3 *force) {
+static void applyForce(world *w, bodyID b, const vec3 *pos, const vec3 *force) {
 	if (w->body_type[b] != BODY_DYNAMIC) {
 		return;
 	} else {
@@ -215,10 +171,10 @@ static inline void applyForce(world *w, bodyID b, const vec3 *pos, const vec3 *f
 
 		{//Angular velocity
 			vec3 toPos;
-			vec3Sub(&toPos, pos, &w->body_pos[b]);
 			vec3 cross;
-			vec3Cross(&cross, &toPos, force);
 			vec3 torque;
+			vec3Sub(&toPos, pos, &w->body_pos[b]);
+			vec3Cross(&cross, &toPos, force);
 			mat3MulVec3(&torque, &inertia, &cross);
 			vec3Add(&w->body_accum[b].avel, &w->body_accum[b].avel, &torque);
 			//vec3Add(&w->body_avel[b], &w->body_avel[b], &torque);
@@ -229,25 +185,29 @@ void bodyApplyForce(world *w, bodyID b, const vec3 *pos, const vec3 *force) {
 	applyForce(w, b, pos, force);
 }
 
-static inline void velAtPoint(vec3 *dest, world *w, bodyID b, const vec3 *pos) {
+static void velAtPoint(vec3 *dest, world *w, bodyID b, const vec3 *pos) {
 	if (w->body_type[b] <= BODY_STATIC) {
 		*dest = vec3Zero;
 		return;
 	} else {
 		vec3 toPos;
-		vec3Sub(&toPos, pos, &w->body_pos[b]);
 		vec3 angular;
+		vec3Sub(&toPos, pos, &w->body_pos[b]);
 		vec3Cross(&angular, &w->body_avel[b], &toPos);
 		vec3Add(dest, &w->body_vel[b], &angular);
 	}
 }
-static inline void forceAtPoint(vec3 *dest, world *w, bodyID b, const vec3 *pos) {
+static void forceAtPoint(vec3 *dest, world *w, bodyID b, const vec3 *pos) {
 	if (w->body_type[b] <= BODY_STATIC) {
 		*dest = vec3Zero;
 		return;
 	} else {
 		scalar mass;
 		mat3 inertia;
+		vec3 toPos;
+		vec3 angular;
+		vec3 torque;
+		vec3 force;
 
 		if (w->body_shape[b] != NULL) {
 			mass = w->body_shape[b]->mass;
@@ -260,13 +220,10 @@ static inline void forceAtPoint(vec3 *dest, world *w, bodyID b, const vec3 *pos)
 			mass = 1;
 			inertia = mat3Identity;
 		}
-		vec3 toPos;
+		
 		vec3Sub(&toPos, pos, &w->body_pos[b]);
-		vec3 angular;
 		vec3Cross(&angular, &w->body_avel[b], &toPos);
-		vec3 torque;
 		mat3MulVec3(&torque, &inertia, &angular);
-		vec3 force;
 		vec3MulScalar(&force, &w->body_vel[b], mass);
 		vec3Add(dest, &force, &torque);
 	}
@@ -276,8 +233,9 @@ void bodyGetVelocityAtPoint(vec3 *dest, world *w, bodyID b, const vec3 *pos) {
 }
 
 //Joints
-static inline jointID pushJoint(world **ptr, joint *j) {
+static jointID pushJoint(world **ptr, joint *j) {
 	world *w = *ptr;
+	size_t index;
 
 	if (w->joint_size >= w->joint_cap) {
 		//Allocate more space
@@ -288,7 +246,6 @@ static inline jointID pushJoint(world **ptr, joint *j) {
 		w = newWorld;
 	}
 
-	size_t index;
 	if (w->joint_empty_size == 0) {
 		index = w->joint_size;
 	} else {
@@ -304,19 +261,23 @@ static inline jointID pushJoint(world **ptr, joint *j) {
 
 	return index;
 }
-static inline void destroyJoint(world *w, jointID j) {
+static void destroyJoint(world *w, jointID j) {
 	w->joints[j].j.type = JOINT_DELETE;
 	w->joint_empty[w->joint_empty_size++] = j;
 	w->joint_size--;
 }
 
 //Solve joints
-static inline void solveContact(world *w, contact_joint *j) {
+static void solveContact(world *w, contact_joint *j) {
 	bodyID a = j->j.a;
 	bodyID b = j->j.b;
 
 	shape* sA = w->body_shape[a];
 	shape* sB = w->body_shape[b];
+	
+	vec3 fA, fB;
+	vec3 relative;
+	scalar contactForce;
 
 	//Error handling and checking body type
 	//TODO: limit amount of error handling
@@ -336,7 +297,6 @@ static inline void solveContact(world *w, contact_joint *j) {
 		return;
 	}
 
-	vec3 fA, fB;
 	forceAtPoint(&fA, w, a, &j->contact.position);
 	forceAtPoint(&fB, w, b, &j->contact.position);
 
@@ -345,9 +305,9 @@ static inline void solveContact(world *w, contact_joint *j) {
 	//	vec3DivScalar(&fB, &fB, 4);
 	//}
 
-	vec3 relative;
+	
 	vec3Sub(&relative, &fB, &fA);
-	scalar contactForce = vec3Dot(&j->contact.normal, &relative);
+	contactForce = vec3Dot(&j->contact.normal, &relative);
 
 	if (contactForce > 0) {
 		return;
@@ -355,19 +315,21 @@ static inline void solveContact(world *w, contact_joint *j) {
 		//restitution
 		scalar e = 1 + mm_max(sA->restitution, sB->restitution);
 		scalar r = contactForce;
+		
+		vec3 force;
 
 		//friction
 		vec3 friction;
 		{
 			vec3 temp;
+			scalar f;
 			vec3Cross(&temp, &relative, &j->contact.normal);
 			vec3Cross(&friction, &temp, &j->contact.normal);
 			vec3Normalize(&friction, &friction);
-			scalar f = mm_sqrt(sA->friction * sB->friction) * vec3Dot(&friction, &relative);
+			f = mm_sqrt(sA->friction * sB->friction) * vec3Dot(&friction, &relative);
 			vec3MulScalar(&friction, &friction, f);
 		}
-
-		vec3 force;
+		
 		vec3MulScalar(&force, &j->contact.normal, r);
 		vec3Add(&force, &force, &friction);
 
@@ -378,11 +340,12 @@ static inline void solveContact(world *w, contact_joint *j) {
 }
 
 //Simulation
-static inline void integrateVelocity(world *w, scalar dt) {
+static void integrateVelocity(world *w, scalar dt) {
 	vec3 gravDelta;
+	size_t i;
 	vec3MulScalar(&gravDelta, &w->gravity, dt);
 
-	for (size_t i = 0; i < w->body_cap; i++) {
+	for (i = 0; i < w->body_cap; i++) {
 		if (w->body_type[i] > BODY_STATIC) {
 
 			vec3Add(&w->body_vel[i], &w->body_vel[i], &w->body_accum[i].vel);
@@ -395,7 +358,12 @@ static inline void integrateVelocity(world *w, scalar dt) {
 				vec3Add(&w->body_pos[i], &w->body_pos[i], &delta);
 			}
 			{ //Angular velocity
-					
+				quat adelta;
+				quat hw;
+				quat hwq;
+				quat end;
+				adelta.v.w = 0;
+                	
 				{	//Angular dampening
 					//TODO: allow customizable dampening
 					vec3 dampen;
@@ -403,14 +371,9 @@ static inline void integrateVelocity(world *w, scalar dt) {
 					vec3Sub(&w->body_avel[i], &w->body_avel[i], &dampen);
 				}
 
-				quat adelta;
-				adelta.w = 0;
 				adelta.axis = w->body_avel[i];
-				quat hw;
 				quatMulScalar(&hw, &adelta, dt * 0.5f);
-				quat hwq;
 				quatMul(&hwq, &hw, &w->body_rot[i]);
-				quat end;
 				quatAdd(&end, &w->body_rot[i], &hwq);
 				quatNormalize(&w->body_rot[i], &end);
 			}
@@ -422,8 +385,9 @@ static inline void integrateVelocity(world *w, scalar dt) {
 		}
 	}
 }
-static inline void recalculateAABB(world *w) {
-	for (size_t i = 0; i < w->body_cap; i++) {
+static void recalculateAABB(world *w) {
+    size_t i;
+	for (i = 0; i < w->body_cap; i++) {
 		if (w->body_type[i] > BODY_STATIC && w->body_shape[i] != NULL) {
 			aabb newAABB;
 			shapeGenerateAabb(&newAABB, w->body_shape[i], &w->body_rot[i]);
@@ -431,12 +395,14 @@ static inline void recalculateAABB(world *w) {
 		}
 	}
 }
-static inline void naive_collision(world **ptr) { // O(n^2) broad phase, hella optimized
+static void naive_collision(world **ptr) { // O(n^2) broad phase, hella optimized
 	world* w = *ptr;
-	for (size_t i = 0; i < (w->body_cap - 1); i++) {
+	size_t i;
+	size_t j;
+	for (i = 0; i < (w->body_cap - 1); i++) {
 		if ((w->body_type[i] > BODY_DELETE) && (w->body_shape[i] != NULL)) {
 
-			for (size_t j = i + 1; j < w->body_cap; j++) {
+			for (j = i + 1; j < w->body_cap; j++) {
 				if ((w->body_type[j] > BODY_DELETE) && (w->body_shape[j] != NULL)) {
 
 					if (aabbCollideAabb(&w->body_aabb[i], &w->body_aabb[j])) {
@@ -446,6 +412,7 @@ static inline void naive_collision(world **ptr) { // O(n^2) broad phase, hella o
 						contact_joint constraint;
 						contact contacts[4];
 						int numContacts;
+						int c;
 
 						if (numContacts = shapeCollide(contacts, 4,
 							w->body_shape[i], &w->body_pos[i], &w->body_rot[i],
@@ -462,7 +429,7 @@ static inline void naive_collision(world **ptr) { // O(n^2) broad phase, hella o
 								constraint.j.b = j;
 							}
 
-							for (int c = 0; c < numContacts; c++) {
+							for (c = 0; c < numContacts; c++) {
 								//Collisions detected and contacts generated
 								constraint.contact = contacts[c];
 
@@ -477,8 +444,9 @@ static inline void naive_collision(world **ptr) { // O(n^2) broad phase, hella o
 		}
 	}
 }
-static inline void solveConstraints(world *w) {
-	for (size_t i = 0; i < w->joint_cap; i++) {
+static void solveConstraints(world *w) {
+    size_t i;
+	for (i = 0; i < w->joint_cap; i++) {
 		switch (w->joints[i].j.type) {
 		case JOINT_DELETE:
 			break;

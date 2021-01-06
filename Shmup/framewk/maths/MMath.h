@@ -11,6 +11,7 @@
 
 #if defined PLATFORM_YAROZE
 #include <libps.h>
+#include "Maths.h"
 #else
 #include <math.h>
 #include <memory.h>
@@ -119,7 +120,8 @@ extern "C" {
 	#pragma endregion Types
 
 	#pragma region Helper_Functions
-	#if defined(MMATH_DOUBLE)
+	//Yaroze lib only declares double versions
+	#if defined(MMATH_DOUBLE) || defined(PLATFORM_YAROZE)
 	#define mm_sqrt(var) (sqrt(var))
 	#define mm_acos(var) (acos(var))
 	#define mm_asin(var) (asin(var))
@@ -131,20 +133,6 @@ extern "C" {
 	#define mm_max(x, y) (fmax(x, y))
 	#define mm_abs(var)  (fabs(var))
 	#else
-    	#if defined PLATFORM_YAROZE
-        //libps only declares double versions, but they're
-        //available built-in to GCC
-    	extern float sqrtf(float);
-    	extern float acosf(float);
-    	extern float asinf(float);
-    	extern float atanf(float);
-    	extern float cosf(float);
-    	extern float sinf(float);
-    	extern float tanf(float);
-    	extern float fminf(float, float);
-    	extern float fmaxf(float, float);
-    	extern float fabsf(float);
-        #endif
 	#define mm_sqrt(var) (sqrtf(var))
 	#define mm_acos(var) (acosf(var))
 	#define mm_asin(var) (asinf(var))

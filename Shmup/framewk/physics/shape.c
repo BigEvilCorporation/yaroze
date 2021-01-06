@@ -61,9 +61,9 @@ shape* shapeCreateSphere(scalar r) {
 }
 
 static inline void boxIntertia(box *b) {
-	scalar mx = b->s.mass * (b->size.y * b->size.y + b->size.z * b->size.z) * 4 / 12.f;
-	scalar my = b->s.mass * (b->size.x * b->size.x + b->size.z * b->size.z) * 4 / 12.f;
-	scalar mz = b->s.mass * (b->size.x * b->size.x + b->size.y * b->size.y) * 4 / 12.f;
+	scalar mx = b->s.mass * (b->size.v.y * b->size.v.y + b->size.v.z * b->size.v.z) * 4 / 12.f;
+	scalar my = b->s.mass * (b->size.v.x * b->size.v.x + b->size.v.z * b->size.v.z) * 4 / 12.f;
+	scalar mz = b->s.mass * (b->size.v.x * b->size.v.x + b->size.v.y * b->size.v.y) * 4 / 12.f;
 	b->s.inertiaTensor = (mat3) {
 		mx, 0,  0,
 		0,  my, 0,
@@ -76,7 +76,7 @@ static inline void boxIntertia(box *b) {
 	};
 }
 static inline void boxMass(box *b, scalar density) {
-	b->s.mass = b->size.x * b->size.y * b->size.z * 8 * density;
+	b->s.mass = b->size.v.x * b->size.v.y * b->size.v.z * 8 * density;
 	boxIntertia(b);
 }
 shape* shapeCreateBox(const vec3 *size) {
@@ -128,20 +128,22 @@ static inline void genSphereAabb(aabb *dest, const sphere *s) {
 }
 static inline void genBoxAabb(aabb *dest, const box *b, const quat *rot) {
 	vec3 corners[8] = {
-		{-b->size.x,-b->size.y,-b->size.z},
-		{-b->size.x,-b->size.y, b->size.z},
-		{-b->size.x, b->size.y,-b->size.z},
-		{-b->size.x, b->size.y, b->size.z},
-		{ b->size.x,-b->size.y,-b->size.z},
-		{ b->size.x,-b->size.y, b->size.z},
-		{ b->size.x, b->size.y,-b->size.z},
-		{ b->size.x, b->size.y, b->size.z},
+		{-b->size.v.x,-b->size.v.y,-b->size.v.z},
+		{-b->size.v.x,-b->size.v.y, b->size.v.z},
+		{-b->size.v.x, b->size.v.y,-b->size.v.z},
+		{-b->size.v.x, b->size.v.y, b->size.v.z},
+		{ b->size.v.x,-b->size.v.y,-b->size.v.z},
+		{ b->size.v.x,-b->size.v.y, b->size.v.z},
+		{ b->size.v.x, b->size.v.y,-b->size.v.z},
+		{ b->size.v.x, b->size.v.y, b->size.v.z},
 	};
 	vec3 min = {0}, max = {0};
-	for (int i = 0; i < 8; i++) {
+	int i;
+	for (i = 0; i < 8; i++) {
 		vec3 temp;
+		int j;
 		quatMulVec3(&temp, rot, &corners[i]);
-		for (int j = 0; j < 3; j++) {
+		for (j = 0; j < 3; j++) {
 			if (temp.data[j] > max.data[j]) {
 				max.data[j] = temp.data[j];
 			} else if (temp.data[j] < min.data[j]){
@@ -169,13 +171,13 @@ void shapeGenerateAabb(aabb *dest, const shape *s, const quat *rot) {
 	}
 }
 
-static inline int collidePlaneSphere(contact *dest, const plane *p, const sphere *b, const vec3 *posb) {
+static int collidePlaneSphere(contact *dest, const plane *p, const sphere *b, const vec3 *posb) {
 	scalar dist = vec3Dot(posb, &p->normal) - p->distance;
 
 	if (dist > -b->radius && dist < b->radius) {
+        vec3 normTemp, temp;
 		dest->normal = p->normal;
 		dest->distance = b->radius - dist;
-		vec3 normTemp, temp;
 		vec3Negate(&normTemp, &p->normal);
 		vec3MulScalar(&temp, &normTemp, b->radius);
 		vec3Add(&dest->position, &temp, posb);
@@ -184,32 +186,36 @@ static inline int collidePlaneSphere(contact *dest, const plane *p, const sphere
 		return 0;
 	}
 }
-static inline int collidePlaneBox(contact *dest, int max, const plane *p, const box *b, const vec3 *posb, const quat *rotb) {
+
+static int collidePlaneBox(contact *dest, int max, const plane *p, const box *b, const vec3 *posb, const quat *rotb) {
 	scalar dist = vec3Dot(posb, &p->normal) - p->distance;
 	scalar corner = vec3Length(&b->size);
 	if (dist > corner || dist < -corner) {
 		return 0;
 	} else {
 		quat reverse;
-		quatInverse(&reverse, rotb);
 		vec3 normal;
-		quatMulVec3(&normal, &reverse, &p->normal);
+		vec3 pos;
+		int contacts = 0;
+		int i;
 		vec3 corners[8] = {
-			{-b->size.x,-b->size.y,-b->size.z},
-			{-b->size.x,-b->size.y, b->size.z},
-			{-b->size.x, b->size.y,-b->size.z},
-			{-b->size.x, b->size.y, b->size.z},
-			{ b->size.x,-b->size.y,-b->size.z},
-			{ b->size.x,-b->size.y, b->size.z},
-			{ b->size.x, b->size.y,-b->size.z},
-			{ b->size.x, b->size.y, b->size.z},
+			{-b->size.v.x,-b->size.v.y,-b->size.v.z},
+			{-b->size.v.x,-b->size.v.y, b->size.v.z},
+			{-b->size.v.x, b->size.v.y,-b->size.v.z},
+			{-b->size.v.x, b->size.v.y, b->size.v.z},
+			{ b->size.v.x,-b->size.v.y,-b->size.v.z},
+			{ b->size.v.x,-b->size.v.y, b->size.v.z},
+			{ b->size.v.x, b->size.v.y,-b->size.v.z},
+			{ b->size.v.x, b->size.v.y, b->size.v.z},
 		};
+		
+		quatInverse(&reverse, rotb);
+		quatMulVec3(&normal, &reverse, &p->normal);
 
-		vec3 pos = vec3Zero;
+		pos = vec3Zero;
 		dest->distance = 0;
 
-		int contacts = 0;
-		for (int i = 0; i < 8; i++) {
+		for (i = 0; i < 8; i++) {
 			scalar pointDist = vec3Dot(&corners[i], &normal) + dist;
 			if (pointDist > 0.f || pointDist < -corner) {
 				continue;
@@ -240,12 +246,14 @@ static inline int collidePlaneBox(contact *dest, int max, const plane *p, const 
 		}
 	}
 }
-static inline int collideSphereSphere(contact *dest, const sphere *a, const vec3 *posa, const sphere *b, const vec3 *posb) {
+static int collideSphereSphere(contact *dest, const sphere *a, const vec3 *posa, const sphere *b, const vec3 *posb) {
 	vec3 t;
+	scalar radius;
+	scalar distance;
 	vec3Sub(&t, posb, posa);
 
-	scalar radius = a->radius + b->radius;
-	scalar distance = vec3Length(&t);
+	radius = a->radius + b->radius;
+	distance = vec3Length(&t);
 
 	if (distance > radius) {
 		return 0;
@@ -257,9 +265,9 @@ static inline int collideSphereSphere(contact *dest, const sphere *a, const vec3
 			ret.normal = vec3YAxis;
 			ret.position = *posa;
 		} else {
+            vec3 pos;
 			ret.distance = radius - distance;
 			vec3MulScalar(&ret.normal, &t, 1.f / distance);
-			vec3 pos;
 			vec3MulScalar(&pos, &ret.normal, a->radius);
 			vec3Add(&ret.position, posa, &pos);
 		}
@@ -268,25 +276,26 @@ static inline int collideSphereSphere(contact *dest, const sphere *a, const vec3
 		return 1;
 	}
 }
-static inline int collideBoxSphere(contact *dest, const box *a, const vec3 *posa, const quat *rota,
+static int collideBoxSphere(contact *dest, const box *a, const vec3 *posa, const quat *rota,
 	const sphere *b, const vec3 *posb) {
 
 	vec3 relative;
-	vec3Sub(&relative, posb, posa);
 	quat reverse;
+	vec3 closest;
+	vec3 dir;
+	scalar dist;
+	
+	aabb box = {
+		{-a->size.v.x, -a->size.v.y, -a->size.v.z},
+		{ a->size.v.x,  a->size.v.y,  a->size.v.z}
+	};
+	
+	vec3Sub(&relative, posb, posa);
 	quatInverse(&reverse, rota);
 	quatMulVec3(&relative, &reverse, &relative);
-
-	aabb box = {
-		{-a->size.x, -a->size.y, -a->size.z},
-		{ a->size.x,  a->size.y,  a->size.z}
-	};
-
-	vec3 closest;
 	aabbClosestPoint(&closest, &box, &relative);
-	vec3 dir;
 	vec3Sub(&dir, &relative, &closest);
-	scalar dist = vec3Length(&dir);
+	dist = vec3Length(&dir);
 
 	if (dist > b->radius) {
 		return 0;
@@ -308,6 +317,7 @@ static inline int collideBoxSphere(contact *dest, const box *a, const vec3 *posa
 		return 1;
 	}
 }
+
 int shapeCollide(contact *dest, int maxContacts, const shape *a, const vec3 *posa, const quat *rota,
 				 const shape *b, const vec3 *posb, const quat *rotb) {
 

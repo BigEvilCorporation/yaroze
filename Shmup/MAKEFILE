@@ -13,6 +13,11 @@ HEADERS = \
     framewk\\io\\Gamepad.h \
     framewk\\maths\\Maths.h \
     framewk\\maths\\MMath.h \
+    framewk\\physics\\AABB.h \
+    framewk\\physics\\Shape.h \
+    framewk\\physics\\PhysDefs.h \
+    framewk\\physics\\Physics.h \
+    framewk\\physics\\World.h \
     framewk\\render\\TIM.h \
     framewk\\render\\TMD.h \
     framewk\\render\\VRAM.h \
@@ -28,6 +33,9 @@ SOURCE	= \
     framewk\\io\\File.c \
     framewk\\io\\Gamepad.c \
     framewk\\maths\\Maths.c \
+    framewk\\physics\\Shape.c \
+    framewk\\physics\\Physics.c \
+    framewk\\physics\\World.c \
     framewk\\render\\TIM.c \
     framewk\\render\\TMD.c \
     framewk\\render\\VRAM.c \
