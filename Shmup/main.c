@@ -14,6 +14,49 @@ GsVIEW2 WorldView;
 GsF_LIGHT TestLight;
 Object Ship;
 
+world* vsWorld;
+bodyID vsBodyCube;
+shape* vsShapeCube;
+bodyID vsBodyPlane;
+shape* vsShapePlane;
+vec3 cubePos;
+vec3 forcePos;
+vec3 force;
+
+void PhysicsInit()
+{
+    vec3 boxSize;
+    vec3 planeNormal;
+    float planeDist;
+    
+    boxSize.v.x = 1.0f;
+    boxSize.v.y = 1.0f;
+    boxSize.v.z = 1.0f;
+
+    planeNormal.v.x = 0.0f;
+    planeNormal.v.y = 1.0f;
+    planeNormal.v.z = 0.0f;
+    planeDist = -3.0f;
+
+    vsWorld = worldCreate();
+
+    vsBodyCube = bodyCreate(&vsWorld);
+    bodySetType(vsWorld, vsBodyCube, BODY_DYNAMIC);
+    vsShapeCube = shapeCreateBox(&boxSize);
+    bodySetShape(vsWorld, vsBodyCube, vsShapeCube);
+
+    vsBodyPlane = bodyCreate(&vsWorld);
+    bodySetType(vsWorld, vsBodyPlane, BODY_STATIC);
+    vsShapePlane = shapeCreatePlane(&planeNormal, planeDist);
+    bodySetShape(vsWorld, vsBodyPlane, vsShapePlane);
+}
+
+void PhysicsTick(scalar deltaTime)
+{
+    worldStep(&vsWorld, deltaTime);
+    bodyGetPosition(&cubePos, vsWorld, vsBodyCube);
+}
+
 main()
 {
     int i;
@@ -24,6 +67,7 @@ main()
 	int size;
 	int result;
 	u_long padData;
+	u_long padDataPrev;
 	MATRIX mtxLocal;
 	MATRIX mtxWorld;
 	Texture texture;
@@ -103,6 +147,9 @@ main()
     //Setup sprites
     //StarfieldInit();
 
+    printf("Initialising physics world\n");
+    PhysicsInit();
+    
     printf("Starting main loop\n");
 	while(running)
     {
@@ -131,8 +178,45 @@ main()
             WorldView.view.t[0] += 1;
 	    if (padData & PADLright)
             WorldView.view.t[0] -= 1;
+        if ((padData & PADRright) && !(padDataPrev & PADRright))
+        {
+            forcePos.v.x = 0.0f;
+            forcePos.v.y = 0.0f;
+            forcePos.v.z = 0.0f;
+            force.v.x = 0.0f;
+            force.v.y = 2.0f;
+            force.v.z = 0.0f;
+            
+            //bodyApplyForce(vsWorld, vsBodyCube, &forcePos, &force);
+            bodyApplyForce(vsWorld, vsBodyCube, &forcePos, &force);
+            
+            force.v.x = -1.0f;
+            force.v.y = -1.0f;
+            force.v.z = -1.0f;
+            
+            //bodyApplyTorque(vsWorld, vsBodyCube, &force);
+        }
+        if ((padData & PADRleft) && !(padDataPrev & PADRleft))
+        {
+            forcePos.v.x = 10.0f;
+            forcePos.v.y = 0.0f;
+            forcePos.v.z = 0.0f;
+            force.v.x = -1.0f;
+            force.v.y = 1.0f;
+            force.v.z = 0.0f;
+            
+            //bodyApplyForce(vsWorld, vsBodyCube, &forcePos, &force);
+            bodyApplyForce(vsWorld, vsBodyCube, &forcePos, &force);
+            
+            force.v.x = 1.0f;
+            force.v.y = 1.0f;
+            force.v.z = 1.0f;
+            
+            //bodyApplyTorque(vsWorld, vsBodyCube, &force);
+        }
             
         //Run simulation
+        PhysicsTick(1.0f/60.0f);
         //StarfieldUpdate();
 		
 		//Draw starfield sprites
@@ -140,7 +224,10 @@ main()
         
 		//Draw objects
 		//Ship.rot.vx += 4*(i+1);
-		Ship.rot.vy += 8*(i+1);
+		//Ship.rot.vy += 8*(i+1);
+		Ship.pos.vx = 10 * cubePos.v.x;
+		Ship.pos.vy = 10 * -cubePos.v.y;
+		Ship.pos.vz = 10 * cubePos.v.z;
 		ObjectUpdateGsTransform(&Ship); 
 		GsGetLws(&Ship.gsTransform, &mtxWorld, &mtxLocal);
 		GsSetLightMatrix(&mtxWorld);
@@ -164,6 +251,7 @@ main()
 		
 		//Debug draw
 		FntPrint("Camera: %d,%d,%d\n", WorldView.view.t[0], WorldView.view.t[1], WorldView.view.t[2]);
+		FntPrint("Ship:   %d,%d,%d\n", Ship.pos.vx, Ship.pos.vy, Ship.pos.vz);
 		FntFlush(-1);
 	}
 
